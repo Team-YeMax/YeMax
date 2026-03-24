@@ -1,6 +1,8 @@
-MIT License
+Modified MIT License
 
-Copyright (c) 2025 Team YeMax
+Copyright (c) 2026 YeMax
+
+Based on code from: https://github.com/krutyshkin/remax
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -11,6 +13,12 @@ furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
+
+YeMax reserves the right to REVOKE the license at any time without giving reasons.
+
+UPON RECEIPT OF A WRITTEN NOTICE OF LICENSE REVOCATION:
+- Further use, copying, modification, distribution is PROHIBITED.
+- Requires deleting all copies of the software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
