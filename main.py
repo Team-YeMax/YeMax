@@ -2,6 +2,8 @@ import os
 import sys
 import random
 import json
+import urllib.request
+import urllib.error
 from pathlib import Path
 from datetime import datetime
 import time
@@ -17,6 +19,8 @@ WINDOW_TITLE = 'YeMax'
 WIDTH = 1200
 HEIGHT = 800
 HTTP_PORT = 13377
+USERAGENT_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'useragent.txt')
+USERAGENTS_REMOTE_URL = 'https://team-yemax.github.io/data/useragents.html'
 
 colorama_init()
 
@@ -62,10 +66,71 @@ USER_AGENTS = [
 FALLBACK_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
 
 
-def pick_ua(agents):
-    ua = random.choice(agents)
-    log.info(f'User-Agent selected: {ua}')
-    return ua
+def fetch_useragents_from_remote(url):
+    try:
+        log.info(f'Fetching User-Agent list from: {url}')
+        request = urllib.request.Request(url)
+        request.add_header('User-Agent', FALLBACK_UA)
+        
+        with urllib.request.urlopen(request, timeout=10) as response:
+            content = response.read().decode('utf-8').strip()
+        
+        if content.startswith('{') and content.endswith('}'):
+            content = '[' + content[1:-1].rstrip().rstrip(',') + ']'
+        
+        useragents = json.loads(content)
+        
+        if useragents and isinstance(useragents, list):
+            log.ok(f'Fetched {len(useragents)} User-Agents from remote')
+            return useragents
+        
+        log.error('Parsed User-Agent list is empty or invalid')
+        return None
+        
+    except urllib.error.URLError as e:
+        log.error(f'Network error fetching User-Agents: {e}')
+        return None
+    except json.JSONDecodeError as e:
+        log.error(f'JSON decode error: {e}')
+        return None
+    except Exception as e:
+        log.error(f'Unexpected error fetching User-Agents: {e}')
+        return None
+
+def load_or_select_useragent(cache_file, fallback_agents):
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cached_ua = f.read().strip()
+            if cached_ua:
+                log.info(f'Loaded cached User-Agent: {cached_ua}')
+                return cached_ua
+        except Exception as e:
+            log.warn(f'Failed to read User-Agent cache: {e}')
+    
+    log.info('No cached User-Agent found, fetching from remote...')
+    agents = fetch_useragents_from_remote(USERAGENTS_REMOTE_URL)
+    
+    if not agents:
+        log.warn('Using fallback User-Agent list')
+        agents = fallback_agents
+    
+    if not agents:
+        log.warn('No User-Agents available, using fallback')
+        selected_ua = FALLBACK_UA
+    else:
+        selected_ua = random.choice(agents)
+    
+    log.info(f'Selected User-Agent: {selected_ua}')
+    
+    try:
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            f.write(selected_ua)
+        log.ok(f'Saved User-Agent to cache: {cache_file}')
+    except Exception as e:
+        log.warn(f'Failed to save User-Agent cache: {e}')
+    
+    return selected_ua
 
 BLOCKED_DOMAINS = [
     'google-analytics','analytics','yandex','mixpanel','amplitude','hotjar','doubleclick',
@@ -235,10 +300,7 @@ def on_error(window, exc):
     log.error(f'Webview exception: {exc}')
 
 def main():
-    agents = USER_AGENTS
-    if not agents:
-        agents = [FALLBACK_UA]
-    ua = pick_ua(agents)
+    ua = load_or_select_useragent(USERAGENT_CACHE_FILE, USER_AGENTS)
     api = Api()
     global main_window
 
